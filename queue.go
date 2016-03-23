@@ -8,6 +8,10 @@ import (
 	"gopkg.in/redis.v3"
 )
 
+const (
+	DEFAULT_POOLSIZE = 10
+)
+
 // Queue is the central element of this library.
 // Packages can be put into or get from the queue.
 // To read from a queue you need a consumer.
@@ -27,8 +31,12 @@ type dataPoint struct {
 
 // CreateQueue return a queue that you can Put() or AddConsumer() to
 // Works like SelectQueue for existing queues
+func CreateQueueWithPoolSize(redisHost, redisPort, redisPassword string, redisDB int64, name string, poolsize int) *Queue {
+	return newQueue(redisHost, redisPort, redisPassword, redisDB, name, poolsize)
+}
+
 func CreateQueue(redisHost, redisPort, redisPassword string, redisDB int64, name string) *Queue {
-	return newQueue(redisHost, redisPort, redisPassword, redisDB, name)
+	return newQueue(redisHost, redisPort, redisPassword, redisDB, name, DEFAULT_POOLSIZE)
 }
 
 // SelectQueue returns a Queue if a queue with the name exists
@@ -48,15 +56,16 @@ func SelectQueue(redisHost, redisPort, redisPassword string, redisDB int64, name
 		return nil, fmt.Errorf("queue with this name doesn't exist")
 	}
 
-	return newQueue(redisHost, redisPort, redisPassword, redisDB, name), nil
+	return newQueue(redisHost, redisPort, redisPassword, redisDB, name, DEFAULT_POOLSIZE), nil
 }
 
-func newQueue(redisHost, redisPort, redisPassword string, redisDB int64, name string) *Queue {
+func newQueue(redisHost, redisPort, redisPassword string, redisDB int64, name string, poolsize int) *Queue {
 	q := &Queue{Name: name}
 	q.redisClient = redis.NewClient(&redis.Options{
 		Addr:     redisHost + ":" + redisPort,
 		Password: redisPassword,
 		DB:       redisDB,
+		PoolSize: poolsize,
 	})
 	q.redisClient.SAdd(masterQueueKey(), name)
 	q.startStatsWriter()
