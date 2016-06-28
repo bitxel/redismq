@@ -21,6 +21,13 @@ func (consumer *Consumer) Get() (*Package, error) {
 	return consumer.unsafeGet()
 }
 
+func (consumer *Consumer) GetWithTimeout(timeout time.Duration) (*Package, error) {
+	if consumer.HasUnacked() {
+		return nil, fmt.Errorf("unacked Packages found")
+	}
+	return consumer.unsafeGetWithTimeout(timeout)
+}
+
 // NoWaitGet returns a single package from the queue (returns nil, nil if no package in queue)
 func (consumer *Consumer) NoWaitGet() (*Package, error) {
 	if consumer.HasUnacked() {
@@ -202,6 +209,19 @@ func (consumer *Consumer) unsafeGet() (*Package, error) {
 		queueInputKey(consumer.Queue.Name),
 		consumerWorkingQueueKey(consumer.Queue.Name, consumer.Name),
 		0,
+	)
+	consumer.Queue.incrRate(
+		consumerWorkingRateKey(consumer.Queue.Name, consumer.Name),
+		1,
+	)
+	return consumer.parseRedisAnswer(answer)
+}
+
+func (consumer *Consumer) unsafeGetWithTimeout(timeout time.Duration) (*Package, error) {
+	answer := consumer.Queue.redisClient.BRPopLPush(
+		queueInputKey(consumer.Queue.Name),
+		consumerWorkingQueueKey(consumer.Queue.Name, consumer.Name),
+		timeout,
 	)
 	consumer.Queue.incrRate(
 		consumerWorkingRateKey(consumer.Queue.Name, consumer.Name),

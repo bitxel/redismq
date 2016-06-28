@@ -42,11 +42,11 @@ func CreateQueue(redisHost, redisPort, redisPassword string, redisDB int64, name
 // SelectQueue returns a Queue if a queue with the name exists
 func SelectQueue(redisHost, redisPort, redisPassword string, redisDB int64, name string) (queue *Queue, err error) {
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:         redisHost + ":" + redisPort,
-		Password:     redisPassword,
-		DB:           redisDB,
-		ReadTimeout:  time.Duration(1) * time.Hour,
-		WriteTimeout: time.Duration(1) * time.Hour,
+		Addr:     redisHost + ":" + redisPort,
+		Password: redisPassword,
+		DB:       redisDB,
+		//ReadTimeout:  time.Duration(1) * time.Hour,
+		//WriteTimeout: time.Duration(1) * time.Hour,
 	})
 	defer redisClient.Close()
 
@@ -64,12 +64,12 @@ func SelectQueue(redisHost, redisPort, redisPassword string, redisDB int64, name
 func newQueue(redisHost, redisPort, redisPassword string, redisDB int64, name string, poolsize int) *Queue {
 	q := &Queue{Name: name}
 	q.redisClient = redis.NewClient(&redis.Options{
-		Addr:         redisHost + ":" + redisPort,
-		Password:     redisPassword,
-		DB:           redisDB,
-		PoolSize:     poolsize,
-		ReadTimeout:  time.Duration(1) * time.Hour,
-		WriteTimeout: time.Duration(1) * time.Hour,
+		Addr:     redisHost + ":" + redisPort,
+		Password: redisPassword,
+		DB:       redisDB,
+		PoolSize: poolsize,
+		//ReadTimeout:  time.Duration(1) * time.Hour,
+		//WriteTimeout: time.Duration(1) * time.Hour,
 	})
 	q.redisClient.SAdd(masterQueueKey(), name)
 	q.startStatsWriter()
