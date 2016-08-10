@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"gopkg.in/redis.v3"
+	"git.garena.com/zhouz/redis.v3"
 )
 
 // Consumer are used for reading from queues

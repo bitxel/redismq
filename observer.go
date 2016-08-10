@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"gopkg.in/redis.v3"
+	"git.garena.com/zhouz/redis.v3"
 )
 
 // Observer is a very simple implementation of an statistics observer

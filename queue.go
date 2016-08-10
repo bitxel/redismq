@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"gopkg.in/redis.v3"
+	"git.garena.com/zhouz/redis.v3"
 )
 
 const (

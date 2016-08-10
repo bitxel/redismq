@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"git.garena.com/zhouz/redis.v3"
 	. "github.com/matttproud/gocheck"
-	"gopkg.in/redis.v3"
 )
 
 func Test(t *testing.T) { TestingT(t) }
