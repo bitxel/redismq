@@ -24,6 +24,7 @@ func NewServer(redisHost, redisPort, redisPassword string, redisDb int64, port s
 
 func (server *Server) setUpRoutes() {
 	http.Handle("/stats", newStatisticsHandler(server.observer))
+	http.Handle("/queue", newStatExHandler(server.observer))
 }
 
 // Start enables the Server to listen on his port
@@ -42,6 +43,10 @@ type statisticsHandler struct {
 	*Observer
 }
 
+type statsExHandler struct {
+	*ObserverEx
+}
+
 func newStatisticsHandler(observer *Observer) *statisticsHandler {
 	handler := &statisticsHandler{
 		Observer: observer,
@@ -49,7 +54,23 @@ func newStatisticsHandler(observer *Observer) *statisticsHandler {
 	return handler
 }
 
+func newStatExHandler(observer *Observer) *statsExHandler {
+	handler := &statsExHandler{
+		ObserverEx: &ObserverEx{
+			Observer: observer,
+		},
+	}
+	return handler
+}
+
 func (handler *statisticsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	handler.Observer.UpdateAllStats()
+	writer.Header().Set("Content-Type", "application/json")
 	fmt.Fprintln(writer, handler.Observer.ToJSON())
+}
+
+func (handler *statsExHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	handler.ObserverEx.UpdateAllStats()
+	writer.Header().Set("Content-Type", "application/json")
+	fmt.Fprintln(writer, handler.ObserverEx.ToJSON())
 }

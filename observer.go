@@ -168,3 +168,46 @@ func (observer *Observer) ToJSON() string {
 	}
 	return string(json)
 }
+
+// ObserverEx collect queue length info
+type ObserverEx struct {
+	*Observer
+	StatEx map[string]*QueueStatEx
+}
+
+// QueueStatEx store number of working and failed tasks
+type QueueStatEx struct {
+	WorkingSize   int64
+	FailedSize    int64
+	ConsumerCount int
+}
+
+// UpdateAllStats fetches stats for all queues and all their consumers
+func (ob *ObserverEx) UpdateAllStats() {
+	queues, err := ob.GetAllQueues()
+	if err != nil {
+		log.Fatalf("ERROR FETCHING QUEUES %s", err.Error())
+	}
+	ob.StatEx = make(map[string]*QueueStatEx)
+
+	for _, queue := range queues {
+		ob.StatEx[queue] = ob.getQueueStats(queue)
+	}
+}
+
+func (ob *ObserverEx) getQueueStats(queue string) *QueueStatEx {
+	stat := &QueueStatEx{}
+	stat.WorkingSize = ob.redisClient.LLen(queueInputKey(queue)).Val()
+	stat.FailedSize = ob.redisClient.LLen(queueFailedKey(queue)).Val()
+	stat.ConsumerCount = len(ob.redisClient.SMembers(queueWorkersKey(queue)).Val())
+	return stat
+}
+
+// ToJSON renders stats to json
+func (ob *ObserverEx) ToJSON() string {
+	json, err := json.Marshal(ob.StatEx)
+	if err != nil {
+		log.Fatalf("ERROR MARSHALLING OVERSEER %s", err.Error())
+	}
+	return string(json)
+}
