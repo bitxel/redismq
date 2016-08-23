@@ -6,6 +6,8 @@ import (
 	"log"
 	"strconv"
 	"time"
+	"regexp"
+	"strings"
 
 	"git.garena.com/zhouz/redis.v3"
 )
@@ -172,7 +174,7 @@ func (observer *Observer) ToJSON() string {
 // ObserverEx collect queue length info
 type ObserverEx struct {
 	*Observer
-	StatEx map[string]*QueueStatEx
+	StatEx map[string]interface{}
 }
 
 // QueueStatEx store number of working and failed tasks
@@ -188,10 +190,22 @@ func (ob *ObserverEx) UpdateAllStats() {
 	if err != nil {
 		log.Fatalf("ERROR FETCHING QUEUES %s", err.Error())
 	}
-	ob.StatEx = make(map[string]*QueueStatEx)
+	ob.StatEx = make(map[string]interface{})
 
 	for _, queue := range queues {
-		ob.StatEx[queue] = ob.getQueueStats(queue)
+		if ob.isSplitQueue(queue) {
+			name := ob.getOriQueueName(queue) + "_Queues"
+			if ob.StatEx[name] == nil {
+				ob.StatEx[name] = make(map[string]*QueueStatEx, 10)
+			}
+			if _, ok := ob.StatEx[name].(map[string]*QueueStatEx); !ok {
+				log.Printf("Queue name conflicts, there is a queue with name %s\n", name)
+				continue
+			}
+			ob.StatEx[name].(map[string]*QueueStatEx)[queue] = ob.getQueueStats(queue)
+		} else {
+			ob.StatEx[queue] = ob.getQueueStats(queue)
+		}
 	}
 }
 
@@ -210,4 +224,20 @@ func (ob *ObserverEx) ToJSON() string {
 		log.Fatalf("ERROR MARSHALLING OVERSEER %s", err.Error())
 	}
 	return string(json)
+}
+
+func (ob *ObserverEx) isSplitQueue(queue string) bool {
+	re := regexp.MustCompile("_[0-9]+$")
+	if re.FindStringIndex(queue) == nil {
+		return false
+	}
+	return true
+}
+
+func (ob *ObserverEx) getOriQueueName(queue string) string {
+	idx := strings.LastIndex(queue, "_")
+	if idx != -1 {
+		return queue[:idx]
+	}
+	return queue
 }
