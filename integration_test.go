@@ -420,6 +420,28 @@ func (suite *TestSuite) TestBufferedFlush(c *C) {
 	c.Check(len(q.Buffer), Equals, 0)
 }
 
+func (suite *TestSuite) TestReququeFailed(c *C) {
+	suite.consumer.ResetWorking()
+	c.Check(suite.queue.Put("testpayload"), Equals, nil)
+
+	p, err := suite.consumer.Get()
+	c.Assert(err, Equals, nil)
+	p.Fail()
+
+	p, err = suite.consumer.GetFailed()
+	c.Assert(p, NotNil)
+	p.Fail()
+
+	c.Assert(suite.queue.GetInputLength(), Equals, int64(0))
+	c.Assert(suite.queue.GetFailedLength(), Equals, int64(1))
+	suite.consumer.RequeueFailed()
+	c.Assert(suite.queue.GetInputLength(), Equals, int64(1))
+	c.Assert(suite.queue.GetFailedLength(), Equals, int64(0))
+	p, err = suite.consumer.Get()
+	c.Assert(err, Equals, nil)
+	c.Assert(p.Ack(), Equals, nil)
+}
+
 // TODO write stats watcher
 // should get numbers of consumers
 
